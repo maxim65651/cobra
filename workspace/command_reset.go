@@ -1,6 +1,7 @@
 package cobra
 
 import (
+	"context"
 	"reflect"
 
 	"github.com/spf13/pflag"
@@ -10,9 +11,6 @@ import (
 func (c *Command) ResetFlags() {
 	if c.flags != nil {
 		c.flags.VisitAll(func(f *pflag.Flag) {
-			// For slice/array flags, pflag values often keep an internal 'changed' representation
-			// to know when to clear the default value before appending.
-			// We use reflection to reset this 'changed' field if present.
 			v := reflect.ValueOf(f.Value)
 			if v.Kind() == reflect.Ptr {
 				v = v.Elem()
@@ -46,4 +44,19 @@ func (c *Command) ResetFlags() {
 	for _, cmd := range c.Commands() {
 		cmd.ResetFlags()
 	}
+}
+
+// ExecuteAndReset executes the command and automatically resets all flags
+// to their default values before execution, preventing value leakage
+// across repeated Execute() invocations.
+func (c *Command) ExecuteAndReset() error {
+	c.ResetFlags()
+	return c.Execute()
+}
+
+// ExecuteContextAndReset executes the command with context and automatically resets
+// all flags to their default values before execution.
+func (c *Command) ExecuteContextAndReset(ctx context.Context) error {
+	c.ResetFlags()
+	return c.ExecuteContext(ctx)
 }
